@@ -29,14 +29,13 @@ import java.util.List;
 import java.util.Map;
 
 import io.jawg.osmcontributor.BuildConfig;
+import io.jawg.osmcontributor.database.PoiAssetLoader;
 import io.jawg.osmcontributor.database.preferences.LoginPreferences;
-import io.jawg.osmcontributor.rest.utils.AuthenticationRequestInterceptor;
-import io.jawg.osmcontributor.ui.managers.PoiManager;
 import io.jawg.osmcontributor.model.entities.Poi;
 import io.jawg.osmcontributor.model.entities.PoiType;
 import io.jawg.osmcontributor.model.entities.PoiTypeTag;
-import io.jawg.osmcontributor.database.PoiAssetLoader;
-import io.jawg.osmcontributor.rest.mappers.PoiMapper;
+import io.jawg.osmcontributor.rest.clients.OsmRestClient;
+import io.jawg.osmcontributor.rest.clients.OverpassRestClient;
 import io.jawg.osmcontributor.rest.dtos.osm.ChangeSetDto;
 import io.jawg.osmcontributor.rest.dtos.osm.NodeDto;
 import io.jawg.osmcontributor.rest.dtos.osm.OsmDto;
@@ -44,8 +43,9 @@ import io.jawg.osmcontributor.rest.dtos.osm.TagDto;
 import io.jawg.osmcontributor.rest.dtos.osm.WayDto;
 import io.jawg.osmcontributor.rest.events.error.SyncDownloadRetrofitErrorEvent;
 import io.jawg.osmcontributor.rest.events.error.SyncUploadRetrofitErrorEvent;
-import io.jawg.osmcontributor.rest.clients.OsmRestClient;
-import io.jawg.osmcontributor.rest.clients.OverpassRestClient;
+import io.jawg.osmcontributor.rest.mappers.PoiMapper;
+import io.jawg.osmcontributor.rest.utils.AuthenticationRequestInterceptor;
+import io.jawg.osmcontributor.ui.managers.PoiManager;
 import io.jawg.osmcontributor.utils.Box;
 import retrofit.RetrofitError;
 import retrofit.mime.TypedString;
@@ -135,7 +135,7 @@ public class OsmBackend implements Backend {
      */
     @Override
     @NonNull
-    public List<Poi> getPoisInBox(final Box box) {
+    public List<Poi> getPoisInBox(final Box box) throws NetworkException {
         Timber.d("Requesting overpass for download");
 
         List<Poi> poiList = new ArrayList<>();
@@ -175,11 +175,12 @@ public class OsmBackend implements Backend {
             }
         });
         if (!result.isSuccess()) {
-            if (result.getRetrofitError() != null) {
-                Timber.e(result.getRetrofitError(), "Retrofit error, couldn't download from overpass");
+            RetrofitError retrofitError = result.getRetrofitError();
+            if (retrofitError != null) {
+                Timber.e(retrofitError, "Retrofit error, couldn't download from overpass");
             }
             bus.post(new SyncDownloadRetrofitErrorEvent());
-            return new ArrayList<>();
+            throw new NetworkException();
         }
 
         OsmDto osmDto = result.getResult();
