@@ -21,8 +21,10 @@ package io.jawg.osmcontributor.ui.fragments;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
+import android.app.AlertDialog;
 import android.app.Fragment;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -100,6 +102,7 @@ import io.jawg.osmcontributor.model.entities.PoiTypeTag;
 import io.jawg.osmcontributor.model.entities.Way;
 import io.jawg.osmcontributor.model.events.PleaseDeletePoiEvent;
 import io.jawg.osmcontributor.model.events.PleaseRemoveArpiMarkerEvent;
+import io.jawg.osmcontributor.model.events.ResetDatabaseEvent;
 import io.jawg.osmcontributor.rest.events.SyncDownloadWayEvent;
 import io.jawg.osmcontributor.rest.events.SyncFinishUploadPoiEvent;
 import io.jawg.osmcontributor.rest.events.error.SyncConflictingNodeErrorEvent;
@@ -464,6 +467,9 @@ public class MapFragment extends Fragment {
         super.onDestroy();
         if (mapView != null) {
             mapView.onDestroy();
+        }
+        if (presenter != null) {
+            presenter.onDestroy();
         }
         // Clear bitmapHandler even if activity leaks.
         bitmapHandler = null;
@@ -949,6 +955,24 @@ public class MapFragment extends Fragment {
 
     public LocationMarkerViewOptions<Note> getNote(Long id) {
         return markersNotes.get(id);
+    }
+
+
+    public void showNeedToRefreshData() {
+        new AlertDialog.Builder(getActivity())
+                .setTitle(R.string.load_poi_data_outdated_refresh_titel)
+                .setMessage(R.string.load_poi_data_outdated_refresh_content)
+                .setPositiveButton(R.string.load_poi_data_outdated_refresh_btn, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        presenter.refreshAreaConfirmed();
+                        dialog.dismiss();
+                    }
+                })
+                .setNegativeButton(R.string.load_poi_data_outdated_refresh_cancel, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                }).show();
     }
 
     /*-----------------------------------------------------------
